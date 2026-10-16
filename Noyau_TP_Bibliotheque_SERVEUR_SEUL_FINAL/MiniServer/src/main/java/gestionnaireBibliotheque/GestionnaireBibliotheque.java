@@ -1,5 +1,6 @@
 package gestionnaireBibliotheque;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class GestionnaireBibliotheque {
@@ -36,9 +37,10 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
         this.typeCommande = typeCommande;
         this.argument = argument;
 
-        if(typeCommande.equals("id")){
-            traiterID(idConnexion, argument);
-        } else if(typeCommande.equals("books")){
+        if(typeCommande.equalsIgnoreCase("ID")){
+            return traiterID(idConnexion, argument);
+        }
+        else if(typeCommande.equals("books")){
 
         }
 
@@ -47,7 +49,24 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
     };
 
     public String traiterID(int idConnexion, String argument){
+        int intArgument;
+        try{
+             intArgument = Integer.parseInt(argument);
+        }catch(NumberFormatException e){
+            return "BAD_ARGUMENT_ERROR";
+        }
+        if(!utilisateurs.containsKey(intArgument)){
+            return "BAD_ARGUMENT_ERROR";
+        }
+        if(utilisateursAuthentifies.containsKey(intArgument)){
+            return "ALREADY_AUTHENTIFIED_ERROR";
+        }
 
+        Utilisateur u = utilisateurs.get(intArgument);
+
+        if (utilisateursAuthentifies.containsValue(u)) {
+            return "TOO_MANY_CONNECTIONS_ERROR";
+        }
         return null;
     };
 }
