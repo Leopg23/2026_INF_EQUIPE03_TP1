@@ -52,11 +52,8 @@ public abstract class  Utilisateur{
 
     public abstract int nombreMaxEmprunts();
 
-    public boolean peutEmprunter(){
-        if (this.empruntsEnCours.taille()<=MAX_RESERVATIONS){
-            return true;
-        }
-        return false;
+    public boolean peutEmprunter() {
+        return this.empruntsEnCours.taille() < nombreMaxEmprunts();
     }
 //6.12
     public boolean possedeReservationEnAttentePourLivre (int idLivre){
@@ -95,5 +92,8 @@ public abstract class  Utilisateur{
 
     public int getId() {
         return this.id;
+    }
+    public String getNom() {
+        return nom;
     }
 }

@@ -53,6 +53,24 @@ public class Livre {
 
         return id;
     }
+    public String getTitre() {
+        return titre;
+    }
+
+    public String getAuteur() {
+        return auteur;
+    }
+
+    public String getCategorie() {
+        return categorie;
+    }
+
+    public StatutLivre getStatut() {
+        return statut;
+    }
+    public void setStatut(StatutLivre statut) {
+        this.statut = statut;
+    }
 
 }
 

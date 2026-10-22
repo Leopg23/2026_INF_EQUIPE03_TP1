@@ -31,8 +31,7 @@ public class Emprunt {
     }
 
     public static int prochainID() {
-        compteurID = rand.nextInt(999999);
-        return compteurID;
+        return ++compteurID;
     }
 
     public boolean estEnRetard(int jourActuel) {
@@ -44,12 +43,10 @@ public class Emprunt {
     }
 
     public int calculerJoursRetard(int jourActuel) {
-        if (jourActuel == jourRetourPrevu) {
-            return 0;
-        } else if (jourActuel > jourRetourPrevu) {
+        if (jourActuel > jourRetourPrevu) {
             return jourActuel - jourRetourPrevu;
         }
-        return jourActuel;
+        return 0;
     }
     public void retourner(int jourRetour) {
         this.jourRetour = jourRetour;
@@ -79,5 +76,8 @@ public class Emprunt {
     }
     public int getId() {
         return this.id;
+    }
+    public int getJourRetourPrevu() {
+        return this.jourRetourPrevu;
     }
 }
