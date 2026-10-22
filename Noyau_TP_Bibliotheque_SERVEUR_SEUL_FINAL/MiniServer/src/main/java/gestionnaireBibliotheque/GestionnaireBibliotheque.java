@@ -1,5 +1,7 @@
 package gestionnaireBibliotheque;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 public class GestionnaireBibliotheque {
@@ -31,23 +33,135 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
 étudiant, puis ordre d’arrivée des réservations.*/
 
 
-    public String traiterCommande(int idConnexion, String typeCommande, String argument){
+    // AJOUT : constructeur qui initialise les attributs (évite les NullPointerException)
+    public GestionnaireBibliotheque() {
+        utilisateurs = new HashMap<>();
+        utilisateursAuthentifies = new HashMap<>();
+        livres = new ListesLivres(new ArrayList<>());
+    }
+
+
+    // Point d'entrée : redirige chaque commande vers la bonne méthode
+    public String traiterCommande(int idConnexion, String typeCommande, String argument) {
         this.idConnection = idConnexion;
         this.typeCommande = typeCommande;
         this.argument = argument;
 
-        if(typeCommande.equals("id")){
-            traiterID(idConnexion, argument);
-        } else if(typeCommande.equals("books")){
-
+        if (typeCommande == null) {
+            return "BAD_COMMAND_ERROR"; // à adapter selon l'énoncé
         }
 
+        if (typeCommande.equalsIgnoreCase("ID")) {
+            return traiterID(idConnexion, argument);
+        } else if (typeCommande.equalsIgnoreCase("BOOKS")) {
+            return traiterBOOKS();
+        } else if (typeCommande.equalsIgnoreCase("BORROW")) {
+            return traiterBORROW(idConnexion, argument);
+        }
 
-        return "";
-    };
+        return "BAD_COMMAND_ERROR"; // à adapter selon l'énoncé
+    }
 
-    public String traiterID(int idConnexion, String argument){
 
-        return null;
-    };
+    // Exercice 1 : commande ID <id utilisateur>
+    public String traiterID(int idConnexion, String argument) {
+        // 1. L'identifiant est valide ?
+        int idUtilisateur;
+        try {
+            idUtilisateur = Integer.parseInt(argument.trim());
+        } catch (NumberFormatException | NullPointerException e) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+
+        // 2. L'utilisateur existe ?
+        Utilisateur utilisateur = utilisateurs.get(idUtilisateur);
+        if (utilisateur == null) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+
+        // 3. La connexion courante est authentifiée ?
+        if (utilisateursAuthentifies.containsKey(idConnexion)) {
+            return "ALREADY_AUTHENTIFIED_ERROR";
+        }
+
+        // 4. L'utilisateur est connecté depuis un autre client ?
+        if (utilisateursAuthentifies.containsValue(utilisateur)) {
+            return "TOO_MANY_CONNECTIONS_ERROR";
+        }
+
+        // 5. Tout est good
+        utilisateursAuthentifies.put(idConnexion, utilisateur);
+        return "AUTHORIZED " + utilisateur.getId() + " " + utilisateur.getNom();
+    }
+
+
+    // Exercice 2 : commande BOOKS
+    public String traiterBOOKS() {
+        StringBuilder reponse = new StringBuilder("BOOKS ");
+        reponse.append(livres.taille());
+
+        for (Livre livre : livres) {
+            reponse.append(" {")
+                    .append(livre.getId()).append(" ")
+                    .append(livre.getTitre()).append(" ")
+                    .append(livre.getAuteur()).append(" ")
+                    .append(livre.getCategorie()).append(" ")
+                    .append(livre.getStatut())
+                    .append("}");
+        }
+        return reponse.toString();
+    }
+
+
+    // Exercice 3 : commande BORROW <id livre> <jour>
+    public String traiterBORROW(int idConnexion, String argument) {
+        // 1. L'utilisateur est authentifié sur cette connexion ?
+        Utilisateur utilisateur = utilisateursAuthentifies.get(idConnexion);
+        if (utilisateur == null) {
+            return "AUTHENTICATION_ERROR";
+        }
+
+        // 2. Les arguments sont valides ? (2 nombres)
+        if (argument == null) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        String[] parties = argument.trim().split("\\s+");
+        if (parties.length != 2) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        int idLivre;
+        int jour;
+        try {
+            idLivre = Integer.parseInt(parties[0]);
+            jour = Integer.parseInt(parties[1]);
+        } catch (NumberFormatException e) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        if (jour < 0) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+
+        // 3. Le livre existe ?
+        Livre livre = livres.rechercher(idLivre);
+        if (livre == null) {
+            return "BOOK_NOT_FOUND_ERROR";
+        }
+
+        // 4. Le livre est disponible ?
+        if (livre.getStatut() != StatutLivre.DISPONIBLE) {
+            return "BOOK_NOT_AVAILABLE_ERROR";
+        }
+
+        // 5. L'utilisateur est à sa limite ?
+        if (!utilisateur.peutEmprunter()) {
+            return "BORROW_LIMIT_ERROR";
+        }
+
+        // 6. Tout est good
+        Emprunt emprunt = new Emprunt(livre, utilisateur.getId(), jour);
+        utilisateur.ajouterEmpruntEnCours(emprunt);
+        livre.setStatut(StatutLivre.EMPRUNTE);
+
+        return "BORROW_OK " + emprunt.getId() + " " + livre.getId() + " " + emprunt.getJourRetourPrevu();
+    }
 }
