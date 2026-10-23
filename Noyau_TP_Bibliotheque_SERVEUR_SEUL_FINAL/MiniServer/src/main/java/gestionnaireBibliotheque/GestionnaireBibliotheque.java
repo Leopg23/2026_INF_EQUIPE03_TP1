@@ -68,8 +68,8 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
         }else if (typeCommande.equalsIgnoreCase("REGISTER")) {
             return traiterREGISTER(argument);
         }else if (typeCommande.equalsIgnoreCase("EXIT")) {
-            traiterEXIT(idConnexion);
-            System.exit(0);
+            return traiterEXIT(idConnexion);
+
         }
 
         return "BAD_COMMAND_ERROR"; // à adapter selon l'énoncé
@@ -309,18 +309,19 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
         if (jour < 0) {
             return "BAD_ARGUMENT_ERROR";
         }
-        Emprunt emprunt;
-        if (utilisateur.rechercherEmpruntEnCours(idEmprunt) == null || utilisateur.rechercherEmpruntTermine(idEmprunt) == null) {
+        Emprunt emprunt = utilisateur.rechercherEmpruntEnCours(idEmprunt);
+        if (emprunt == null) {
+            emprunt = utilisateur.rechercherEmpruntTermine(idEmprunt);
+        }
+        if (emprunt == null) {
             return "BAD_BORROW_ERROR";
-        } else {
+        }else {
             emprunt = utilisateur.rechercherEmpruntEnCours(idEmprunt) == null
                     ? utilisateur.rechercherEmpruntTermine(idEmprunt)
                     : utilisateur.rechercherEmpruntEnCours(idEmprunt);
         }
         int nombresDeJoursDeRetard = Math.max(jour - emprunt.getJourRetourPrevu(), 0);
-        double montant = nombresDeJoursDeRetard == 0.00
-                ? 0.00
-                : nombresDeJoursDeRetard * 5;
+        double montant = utilisateur.calculerPenalite(idEmprunt);
 
         return String.format("PENALTY %.2f %d", montant, nombresDeJoursDeRetard);
     }
@@ -350,7 +351,7 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
             return "BAD_ARGUMENT_ERROR";
         }
 
-        if(!typeUtilisateur.equals("ETUDIANT") || !typeUtilisateur.equals("PROFESSEUR") || !typeUtilisateur.equals("PERSONNEL")){
+        if (!typeUtilisateur.equals("ETUDIANT") && !typeUtilisateur.equals("PROFESSEUR") && !typeUtilisateur.equals("PERSONNEL")) {
             return "BAD_ARGUMENT_ERROR";
         }
 
@@ -378,10 +379,15 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
         if (utilisateur == null) {
             return "AUTHENTICATION_ERROR";
         }
-        utilisateurs.remove(idConnexion);
+        utilisateursAuthentifies.remove(idConnexion);
 
 
         //2. Tout est good
         return "END";
     };
+
+
+    public ListesLivres getLivres() {
+        return livres;
+    }
 }
