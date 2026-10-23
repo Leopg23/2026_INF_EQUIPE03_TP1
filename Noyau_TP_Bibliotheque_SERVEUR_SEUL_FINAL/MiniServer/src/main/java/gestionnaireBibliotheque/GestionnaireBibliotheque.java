@@ -57,10 +57,19 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
             return traiterBOOKS();
         } else if (typeCommande.equalsIgnoreCase("BORROW")) {
             return traiterBORROW(idConnexion, argument);
-        }else if (typeCommande.equalsIgnoreCase("RETURN")) {
+        } else if (typeCommande.equalsIgnoreCase("RETURN")) {
             return traiterRETURN(idConnexion, argument);
-        }else if (typeCommande.equalsIgnoreCase("RESERVE")) {
-            return traiterRETURN(idConnexion, argument);
+        } else if (typeCommande.equalsIgnoreCase("RESERVE")) {
+            return traiterRESERVE(idConnexion, argument);
+        } else if (typeCommande.equalsIgnoreCase("INFO")) {
+            return traiterINFO(idConnexion, argument);
+        } else if (typeCommande.equalsIgnoreCase("PENALTY")) {
+            return traiterPENALTY(idConnexion, argument);
+        }else if (typeCommande.equalsIgnoreCase("REGISTER")) {
+            return traiterREGISTER(argument);
+        }else if (typeCommande.equalsIgnoreCase("EXIT")) {
+            traiterEXIT(idConnexion);
+            System.exit(0);
         }
 
         return "BAD_COMMAND_ERROR"; // à adapter selon l'énoncé
@@ -98,7 +107,6 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
         return "AUTHORIZED " + utilisateur.getId() + " " + utilisateur.getNom();
     }
 
-
     // Exercice 2 : commande BOOKS
     public String traiterBOOKS() {
         StringBuilder reponse = new StringBuilder("BOOKS ");
@@ -115,7 +123,6 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
         }
         return reponse.toString();
     }
-
 
     // Exercice 3 : commande BORROW <id livre> <jour>
     public String traiterBORROW(int idConnexion, String argument) {
@@ -169,7 +176,8 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
         return "BORROW_OK " + emprunt.getId() + " " + livre.getId() + " " + emprunt.getJourRetourPrevu();
     }
 
-    public String traiterRETURN(int idConnexion, String argument){
+    //Exercice 4 : commande RETURN <id livre> <jour>
+    public String traiterRETURN(int idConnexion, String argument) {
         // 1. L'utilisateur est authentifié sur cette connexion ?
         Utilisateur utilisateur = utilisateursAuthentifies.get(idConnexion);
         if (utilisateur == null) {
@@ -213,7 +221,9 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
 
         return "BORROW_OK " + emprunt.getId() + " " + livre.getId() + " " + emprunt.getJourRetourPrevu();
     }
-    public String traiterRESERVE(int idConnexion, String argument){
+
+    //Exercice 5 : commande RESERVE
+    public String traiterRESERVE(int idConnexion, String argument) {
         // 1. L'utilisateur est authentifié sur cette connexion ?
         Utilisateur utilisateur = utilisateursAuthentifies.get(idConnexion);
         if (utilisateur == null) {
@@ -235,38 +245,143 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
         }
 
         //4. Le livre est reserve
-        if(livre.getStatut().equals(StatutLivre.EMPRUNTE)){
+        if (livre.getStatut().equals(StatutLivre.EMPRUNTE)) {
             return "BOOK_ALREADY_AVAILABLE_ERROR";
         }
 
         //5. Tout est good
-        Reservation reservation = new Reservation(livre,idConnexion,utilisateur.getTypeUtilisateur());
+        Reservation reservation = new Reservation(livre, idConnexion, utilisateur.getTypeUtilisateur());
         reservationsEnAttente.ajouter(reservation);
         livre.setStatut(StatutLivre.RESERVE);
         return "RESERVATION_OK";
     }
-    public String traiterINFO(int idConnexion, String argument){
+
+    //Exercice 6 : commande INFO
+    public String traiterINFO(int idConnexion, String argument) {
         // 1. L'utilisateur est authentifié sur cette connexion ?
         Utilisateur utilisateur = utilisateursAuthentifies.get(idConnexion);
         if (utilisateur == null) {
             return "AUTHENTICATION_ERROR";
         }
         // 2. Verifier si l'utilisateur a entree un argument
-        if(argument!=null){
+        if (argument != null) {
             int idEmprunt;
             try {
                 idEmprunt = Integer.parseInt(argument.trim());
             } catch (NumberFormatException | NullPointerException e) {
                 return "BAD_ARGUMENT_ERROR";
             }
-            if(!utilisateur.getEmpruntsEnCours().contient(idEmprunt)){
+            if (!utilisateur.getEmpruntsEnCours().contient(idEmprunt)) {
                 return "BAD_BORROW_ERROR";
-            }
-            else {
+            } else {
                 return utilisateur.getEmpruntsEnCours().rechercher(idEmprunt).toString();
             }
         }
 
         return utilisateur.getEmpruntsEnCours().toString();
     }
+
+    //Exercice 7 : commande PENALTY <id emprunt> <jour>
+    public String traiterPENALTY(int idConnexion, String argument) {
+        // 1. L'utilisateur est authentifié sur cette connexion ?
+        Utilisateur utilisateur = utilisateursAuthentifies.get(idConnexion);
+        if (utilisateur == null) {
+            return "AUTHENTICATION_ERROR";
+        }
+
+        // 2. Les arguments sont valides ? (2 nombres)
+        if (argument == null) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        String[] parties = argument.trim().split("\\s+");
+        if (parties.length != 2) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        int idEmprunt;
+        int jour;
+        try {
+            idEmprunt = Integer.parseInt(parties[0]);
+            jour = Integer.parseInt(parties[1]);
+        } catch (NumberFormatException e) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+
+        if (jour < 0) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        Emprunt emprunt;
+        if (utilisateur.rechercherEmpruntEnCours(idEmprunt) == null || utilisateur.rechercherEmpruntTermine(idEmprunt) == null) {
+            return "BAD_BORROW_ERROR";
+        } else {
+            emprunt = utilisateur.rechercherEmpruntEnCours(idEmprunt) == null
+                    ? utilisateur.rechercherEmpruntTermine(idEmprunt)
+                    : utilisateur.rechercherEmpruntEnCours(idEmprunt);
+        }
+        int nombresDeJoursDeRetard = Math.max(jour - emprunt.getJourRetourPrevu(), 0);
+        double montant = nombresDeJoursDeRetard == 0.00
+                ? 0.00
+                : nombresDeJoursDeRetard * 5;
+
+        return String.format("PENALTY %.2f %d", montant, nombresDeJoursDeRetard);
+    }
+
+    //Exercice 8 : REGISTER <idUtilisateur> <typeUtilisateur> <nomUtilisateur>
+    public String traiterREGISTER(String argument){
+        // 1. Les arguments sont valides ? (2 nombres)
+        if (argument == null) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        String[] parties = argument.trim().split("\\s+");
+        if (parties.length != 3) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        int idUtilisateur;
+        String typeUtilisateur;
+        String nomUtilisateur;
+        Utilisateur utilisateur = null;
+        try {
+            idUtilisateur = Integer.parseInt(parties[0]);
+            typeUtilisateur = parties[1];
+            nomUtilisateur = parties[2];
+        } catch (NumberFormatException e) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        if(utilisateurs.containsKey(idUtilisateur)){
+            return "BAD_ARGUMENT_ERROR";
+        }
+
+        if(!typeUtilisateur.equals("ETUDIANT") || !typeUtilisateur.equals("PROFESSEUR") || !typeUtilisateur.equals("PERSONNEL")){
+            return "BAD_ARGUMENT_ERROR";
+        }
+
+        //2. Tout est good
+        else if (typeUtilisateur.equals("ETUDIANT")) {
+            utilisateur = new Etudiant(idUtilisateur, nomUtilisateur);
+        }
+        else if (typeUtilisateur.equals("PROFESSEUR")) {
+            utilisateur = new Professeur(idUtilisateur, nomUtilisateur);
+        }
+        else if (typeUtilisateur.equals("PERSONNEL")) {
+            utilisateur = new Personnel(idUtilisateur, nomUtilisateur);
+        }
+        if(utilisateur != null){
+          utilisateurs.put(idUtilisateur, utilisateur);
+        }
+
+            return String.format("REGISTERED %d %s", idUtilisateur, nomUtilisateur);
+    }
+
+    //Exercice 9 : EXIT
+    public String traiterEXIT(int idConnexion){
+        // 1. L'utilisateur est authentifié sur cette connexion ?
+        Utilisateur utilisateur = utilisateursAuthentifies.get(idConnexion);
+        if (utilisateur == null) {
+            return "AUTHENTICATION_ERROR";
+        }
+        utilisateurs.remove(idConnexion);
+
+
+        //2. Tout est good
+        return "END";
+    };
 }
