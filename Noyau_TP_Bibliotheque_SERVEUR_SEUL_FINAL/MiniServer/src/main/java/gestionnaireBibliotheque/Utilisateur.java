@@ -96,4 +96,7 @@ public abstract class  Utilisateur{
     public String getNom() {
         return nom;
     }
+    public ListeEmprunts getEmpruntsEnCours() {
+        return empruntsEnCours;
+    }
 }

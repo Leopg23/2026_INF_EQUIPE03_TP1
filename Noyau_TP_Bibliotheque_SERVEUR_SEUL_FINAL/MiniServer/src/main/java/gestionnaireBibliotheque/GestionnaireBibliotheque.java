@@ -57,6 +57,10 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
             return traiterBOOKS();
         } else if (typeCommande.equalsIgnoreCase("BORROW")) {
             return traiterBORROW(idConnexion, argument);
+        }else if (typeCommande.equalsIgnoreCase("RETURN")) {
+            return traiterRETURN(idConnexion, argument);
+        }else if (typeCommande.equalsIgnoreCase("RESERVE")) {
+            return traiterRETURN(idConnexion, argument);
         }
 
         return "BAD_COMMAND_ERROR"; // à adapter selon l'énoncé
@@ -163,5 +167,106 @@ respecter automatiquement l’ordre de priorité défini dans le système : prof
         livre.setStatut(StatutLivre.EMPRUNTE);
 
         return "BORROW_OK " + emprunt.getId() + " " + livre.getId() + " " + emprunt.getJourRetourPrevu();
+    }
+
+    public String traiterRETURN(int idConnexion, String argument){
+        // 1. L'utilisateur est authentifié sur cette connexion ?
+        Utilisateur utilisateur = utilisateursAuthentifies.get(idConnexion);
+        if (utilisateur == null) {
+            return "AUTHENTICATION_ERROR";
+        }
+
+        // 2. Les arguments sont valides ? (2 nombres)
+        if (argument == null) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        String[] parties = argument.trim().split("\\s+");
+        if (parties.length != 2) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+        int idLivre;
+        int jour;
+        try {
+            idLivre = Integer.parseInt(parties[0]);
+            jour = Integer.parseInt(parties[1]);
+        } catch (NumberFormatException e) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+
+        if (jour < 0) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+
+        // 3. Verifier que l'emprunt est dans les emprunts en cours de l'utilisateur
+        Emprunt emprunt = utilisateur.rechercherEmpruntEnCours(idLivre);
+        if (emprunt == null) {
+            return "BAD_BORROW_ERROR";
+        }
+
+
+        // 4. Tout est good
+        Livre livre = livres.rechercher(idLivre);
+        utilisateur.supprimerEmpruntEnCours(idLivre);
+        utilisateur.ajouterEmpruntTermine(emprunt);
+        livre.setStatut(StatutLivre.DISPONIBLE);
+
+
+        return "BORROW_OK " + emprunt.getId() + " " + livre.getId() + " " + emprunt.getJourRetourPrevu();
+    }
+    public String traiterRESERVE(int idConnexion, String argument){
+        // 1. L'utilisateur est authentifié sur cette connexion ?
+        Utilisateur utilisateur = utilisateursAuthentifies.get(idConnexion);
+        if (utilisateur == null) {
+            return "AUTHENTICATION_ERROR";
+        }
+
+        // 2. L'identifiant est valide ?
+        int idLivre;
+        try {
+            idLivre = Integer.parseInt(argument.trim());
+        } catch (NumberFormatException | NullPointerException e) {
+            return "BAD_ARGUMENT_ERROR";
+        }
+
+        // 3. Le livre existe ?
+        Livre livre = livres.rechercher(idLivre);
+        if (livre == null) {
+            return "BOOK_NOT_FOUND_ERROR";
+        }
+
+        //4. Le livre est reserve
+        if(livre.getStatut().equals(StatutLivre.EMPRUNTE)){
+            return "BOOK_ALREADY_AVAILABLE_ERROR";
+        }
+
+        //5. Tout est good
+        Reservation reservation = new Reservation(livre,idConnexion,utilisateur.getTypeUtilisateur());
+        reservationsEnAttente.ajouter(reservation);
+        livre.setStatut(StatutLivre.RESERVE);
+        return "RESERVATION_OK";
+    }
+    public String traiterINFO(int idConnexion, String argument){
+        // 1. L'utilisateur est authentifié sur cette connexion ?
+        Utilisateur utilisateur = utilisateursAuthentifies.get(idConnexion);
+        if (utilisateur == null) {
+            return "AUTHENTICATION_ERROR";
+        }
+        // 2. Verifier si l'utilisateur a entree un argument
+        if(argument!=null){
+            int idEmprunt;
+            try {
+                idEmprunt = Integer.parseInt(argument.trim());
+            } catch (NumberFormatException | NullPointerException e) {
+                return "BAD_ARGUMENT_ERROR";
+            }
+            if(!utilisateur.getEmpruntsEnCours().contient(idEmprunt)){
+                return "BAD_BORROW_ERROR";
+            }
+            else {
+                return utilisateur.getEmpruntsEnCours().rechercher(idEmprunt).toString();
+            }
+        }
+
+        return utilisateur.getEmpruntsEnCours().toString();
     }
 }

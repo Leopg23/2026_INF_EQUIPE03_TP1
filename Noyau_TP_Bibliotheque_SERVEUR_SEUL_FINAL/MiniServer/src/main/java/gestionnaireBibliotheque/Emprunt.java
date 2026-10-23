@@ -62,22 +62,16 @@ public class Emprunt {
 
     @Override
     public String toString() {
-        return  "=======================================\n" +
-                "|        DÉTAILS DE L'EMPRUNT         |\n" +
-                "=======================================\n" +
-                "| ID             : " + id + "\n" +
-                "| Livre ID       : " + livre.getId() + "\n" +
-                "| ID Utilisateur : " + idUtilisateur + "\n" +
-                "| Jour Emprunt   : " + jourEmprunt + "\n" +
-                "| Retour Prévu   : " + jourRetourPrevu + "\n" +
-                "| Jour Retour    : " + (statut == StatutEmprunt.RETOURNE ? jourRetour : "Non retourné") + "\n" +
-                "| Statut         : " + statut + "\n" +
-                "=======================================";
+        return "{" + id + " " + livre.getId() + " " + jourEmprunt + " " + jourRetourPrevu + " " + statut + "}";
     }
     public int getId() {
         return this.id;
     }
     public int getJourRetourPrevu() {
         return this.jourRetourPrevu;
+    }
+
+    public Livre getLivre() {
+        return livre;
     }
 }

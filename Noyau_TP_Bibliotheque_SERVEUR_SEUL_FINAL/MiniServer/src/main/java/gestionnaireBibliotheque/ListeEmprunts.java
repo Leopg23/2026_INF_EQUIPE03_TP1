@@ -56,7 +56,12 @@
             return emprunts.iterator();
         }
 
-        public String toString(){
-            return emprunts.toString();
+        @Override
+        public String toString() {
+            String res = "INFO " + emprunts.size();
+            for (Emprunt emprunt : emprunts) {
+                res += " " + emprunt.toString();
+            }
+            return res;
         }
     }
